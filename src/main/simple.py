@@ -83,7 +83,8 @@ opt = keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
 if USING_CPU:
     if NUM_CPUS == 1:
       # ???
-      model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+      #model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+      model = keras.applications.vgg19.VGG19(include_top=True, weights='imagenet', input_tensor=None, input_shape=None, pooling=None, classes=NUM_CLASSES)
       # Actual compiling, define optimizer, loss function, metric for evaluation
       model.compile(
                 optimizer=opt,
@@ -93,7 +94,8 @@ if USING_CPU:
       # Create a streategy for tensorflow
       mirrored_strategy = tf.distribute.MirroredStrategy()
       with mirrored_strategy.scope():
-        model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+        #model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+        model = keras.applications.vgg19.VGG19(include_top=True, weights='imagenet', input_tensor=None, input_shape=None, pooling=None, classes=NUM_CLASSES)
 
           # Actual compiling, define optimizer, loss function, metric for evaluation
         model.compile(
@@ -104,7 +106,8 @@ else:
   if NUM_GPUS == 1:
 
       #???
-      model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+      #model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+      model = keras.applications.vgg19.VGG19(include_top=True, weights='imagenet', input_tensor=None, input_shape=None, pooling=None, classes=NUM_CLASSES)
 
       # Actual compiling, define optimizer, loss function, metric for evaluation
       model.compile(
@@ -115,7 +118,8 @@ else:
       # Create a streategy for tensorflow
       mirrored_strategy = tf.distribute.MirroredStrategy()
       with mirrored_strategy.scope():
-        model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+        #model = resnet.resnet56(img_input=img_input, classes=NUM_CLASSES)
+        model = keras.applications.vgg19.VGG19(include_top=True, weights='imagenet', input_tensor=None, input_shape=None, pooling=None, classes=NUM_CLASSES)
 
           # Actual compiling, define optimizer, loss function, metric for evaluation
         model.compile(

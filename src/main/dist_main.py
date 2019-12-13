@@ -10,7 +10,7 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 #from src.main.data_partition_helpers import DataPartitioner
-import DataPartitioner
+from data_partition_helpers import DataPartitioner
 
 def run(rank, size):
   #  dist.barrier() - Wait for porcesses

@@ -3,45 +3,59 @@
 import os
 import torch
 import torch.distributed as dist
+from torch import optim
 from torch.distributions import transforms
 from torch.multiprocessing import Process
 import torchvision.datasets as datasets
 import torchvision.models as models
+import torch.nn.functional as F
+from math import ceil
+from torch.autograd import Variable
 
-from src.main.data_partition_helpers import DataPartitioner
+#from src.main.data_partition_helpers import DataPartitioner
+from data_partition_helpers import DataPartitioner
 
+print("All imports completed")
 
 def run(rank, size):
 
   #  dist.barrier() - Wait for porcesses
     print('==> Running ..')
-    tensor = torch.zeros(1)
-    if rank == 0:
-        tensor += 1
-        # Send the tensor to process 1
-        dist.send(tensor=tensor, dst=1)
-    else:
-        # Receive tensor from process 0
-        dist.recv(tensor=tensor, src=0)
-    print('Rank ', rank, ' has data ', tensor[0])
-    # train_set, bsz = partition_dataset()
-    # model = models.vgg19()
-    # optimizer = optim.SGD(model.parameters(),
-    #                       lr=0.01, momentum=0.5)
-    #
-    # num_batches = torch.ceil(len(train_set.dataset) / float(bsz))
-    # for epoch in range(10):
-    #     epoch_loss = 0.0
-    #     for data, target in train_set:
-    #         optimizer.zero_grad()
-    #         output = model(data)
-    #         loss = F.nll_loss(output, target)
-    #         epoch_loss += loss.item()
-    #         loss.backward()
-    #         average_gradients(model)
-    #         optimizer.step()
-    #     print('Rank ', dist.get_rank(), ', epoch ',
-    #           epoch, ': ', epoch_loss / num_batches)
+    # tensor = torch.zeros(1)
+    # if rank == 0:
+    #     tensor += 1
+    #     # Send the tensor to process 1
+    #     dist.send(tensor=tensor, dst=1)
+    # else:
+    #     # Receive tensor from process 0
+    #     dist.recv(tensor=tensor, src=0)
+    # print('Rank ', rank, ' has data ', tensor[0])
+
+
+    """ Distributed Synchronous SGD Example """
+    #torch.manual_seed(1234)
+    train_set, bsz = partition_dataset()
+    model = models.vgg19()
+    model = model
+    #    model = model.cuda(rank)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+
+    num_batches = ceil(len(train_set.dataset) / float(bsz))
+    for epoch in range(1):
+        epoch_loss = 0.0
+        for data, target in train_set:
+            data, target = Variable(data), Variable(target)
+            #            data, target = Variable(data.cuda(rank)), Variable(target.cuda(rank))
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            epoch_loss += loss.data[0]
+            loss.backward()
+            average_gradients(model)
+            optimizer.step()
+        print('Rank ',
+              dist.get_rank(), ', epoch ', epoch, ': ',
+              epoch_loss / num_batches)
 
 """ Gradient averaging. """
 def average_gradients(model):

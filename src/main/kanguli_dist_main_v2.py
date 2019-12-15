@@ -67,13 +67,14 @@ def average_gradients(model):
         dist.all_reduce(param.grad.data, op=dist.reduce_op.SUM)
         param.grad.data /= size
 
-def init_process(rank, size, fn, backend='mpi'):
-    """ Initialize the distributed environment. """
+def init_process(rank, size, fn= None, backend='mpi'):
+    """ Initialize the distributed environment. """ 
     print('==> Initialize the distributed environment')
     os.environ['MASTER_ADDR'] = 'nasp-cpu-01'
     os.environ['MASTER_PORT'] = '29500'
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size)
+    #fn(rank, size)
+    train()
 
 """ Partitioning CIFAR """
 def partition_dataset(train=True):

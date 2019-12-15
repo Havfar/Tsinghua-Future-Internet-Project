@@ -68,11 +68,13 @@ def average_gradients(model):
         param.grad.data /= size
 
 def init_process(rank, size, fn= None, backend='mpi'):
-    """ Initialize the distributed environment. """ 
+    """ Initialize the distributed environment. """
     print('==> Initialize the distributed environment')
     os.environ['MASTER_ADDR'] = 'nasp-cpu-01'
     os.environ['MASTER_PORT'] = '29500'
+    print("After os env")
     dist.init_process_group(backend, rank=rank, world_size=size)
+    print("After init_process_group")
     #fn(rank, size)
     train()
 
@@ -95,6 +97,7 @@ def partition_dataset(train=True):
     return train_set, bsz
 
 def train():
+    print("==> TRAINING ..")
     for i in range(1):
         train_epoch(i)
 

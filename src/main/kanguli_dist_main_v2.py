@@ -159,8 +159,8 @@ if __name__ == "__main__":
     model = models.vgg19()
     for rank in range(size):
         print('==> Running rank: ' + str(rank) +  " of " + str(size) )
-        #p = Process(target=init_process, args=(rank, size, run))
-        p = Process(target=train)
+        p = Process(target=init_process, args=(rank, size))
+        #p = Process(target=train)
         p.start()
         processes.append(p)
 

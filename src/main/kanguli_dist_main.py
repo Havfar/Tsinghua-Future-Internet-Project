@@ -15,7 +15,7 @@ from torch.autograd import Variable
 #from src.main.data_partition_helpers import DataPartitioner
 from data_partition_helpers import DataPartitioner
 
-from src.main.utils import progress_bar
+from utils import progress_bar
 
 print("All imports completed")
 
@@ -119,8 +119,11 @@ def train_epoch(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        print(batch_idx,"" ,len(trainloader), ', Rank ',
+              dist.get_rank(), ', epoch ', epoch, ', loss ',
+              train_loss, ", predict: ", predicted, ", correct ", correct, ", total ", total)
+        # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 
 def test(epoch):
@@ -140,9 +143,12 @@ def test(epoch):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
-
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            print(batch_idx, "", len(test_loss), ', Rank ',
+                  dist.get_rank(), ', epoch ', epoch, ', loss ',
+                  test_loss, ", predict: ", predicted, ", correct ", correct, ", total ", total)
+            #
+            # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            #     % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 
 if __name__ == "__main__":

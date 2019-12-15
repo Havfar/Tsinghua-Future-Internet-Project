@@ -4,7 +4,8 @@ import os
 import torch
 import torch.distributed as dist
 from torch import optim, nn
-from torch.distributions import transforms
+#from torch.distributions import transforms
+from torchvision import transforms
 from torch.multiprocessing import Process
 import torchvision.datasets as datasets
 import torchvision.models as models

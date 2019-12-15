@@ -3,7 +3,6 @@
 import os
 import torch
 import torch.distributed as dist
-from torch import optim
 from torch.distributions import transforms
 from torch.multiprocessing import Process
 import torchvision.datasets as datasets
@@ -13,8 +12,9 @@ from src.main.data_partition_helpers import DataPartitioner
 
 
 def run(rank, size):
-  #  dist.barrier() - Wait for porcesses
 
+  #  dist.barrier() - Wait for porcesses
+    print('==> Running ..')
     tensor = torch.zeros(1)
     if rank == 0:
         tensor += 1
@@ -52,6 +52,7 @@ def average_gradients(model):
 
 def init_process(rank, size, fn, backend='mpi'):
     """ Initialize the distributed environment. """
+    print('==> Initialize the distributed environment')
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '29500'
     dist.init_process_group(backend, rank=rank, world_size=size)
@@ -59,6 +60,7 @@ def init_process(rank, size, fn, backend='mpi'):
 
 """ Partitioning CIFAR """
 def partition_dataset():
+    print('==> Preparing data..')
     dataset = datasets.CIFAR10('./data', train=True, download=True,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
@@ -78,6 +80,7 @@ if __name__ == "__main__":
     size = 3
     processes = []
     for rank in range(size):
+        print('==> Running rank: ' + rank +  " of " + size )
         p = Process(target=init_process, args=(rank, size, run))
         p.start()
         processes.append(p)

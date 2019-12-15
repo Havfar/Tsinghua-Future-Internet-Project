@@ -3,7 +3,7 @@
 import os
 import torch
 import torch.distributed as dist
-from torch import optim
+from torch import optim, nn
 from torch.distributions import transforms
 from torch.multiprocessing import Process
 import torchvision.datasets as datasets
@@ -14,6 +14,8 @@ from torch.autograd import Variable
 
 #from src.main.data_partition_helpers import DataPartitioner
 from data_partition_helpers import DataPartitioner
+
+from src.main.utils import progress_bar
 
 print("All imports completed")
 
@@ -36,7 +38,7 @@ def run(rank, size):
     #torch.manual_seed(1234)
     train_set, bsz = partition_dataset()
     model = models.vgg19()
-    model = model
+   # model = model
     #    model = model.cuda(rank)
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
@@ -73,9 +75,9 @@ def init_process(rank, size, fn, backend='mpi'):
     fn(rank, size)
 
 """ Partitioning CIFAR """
-def partition_dataset():
+def partition_dataset(train=True):
     print('==> Preparing data..')
-    dataset = datasets.CIFAR10('./data', train=True, download=True,
+    dataset = datasets.CIFAR10('./data', train=train, download=True,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.1307,), (0.3081,))
@@ -90,9 +92,65 @@ def partition_dataset():
                                          shuffle=True)
     return train_set, bsz
 
+def train():
+    for i in range(1):
+        train_epoch(i)
+
+# Training
+def train_epoch(epoch):
+    print('\nEpoch: %d' % epoch)
+    model.train()
+    trainloader,bsz = partition_dataset(train)
+    train_loss = 0
+    correct = 0
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+
+    total = 0
+    for batch_idx, (inputs, targets) in enumerate(trainloader):
+        inputs, targets = inputs.to(device), targets.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
+
+        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+
+
+def test(epoch):
+    global best_acc
+    testloader,bsz = partition_dataset(train=False)
+    model.eval()
+    test_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+
+
 if __name__ == "__main__":
     size = 3
     processes = []
+    criterion = nn.CrossEntropyLoss()
+    device = "cpu"
+    model = models.vgg19()
     for rank in range(size):
         print('==> Running rank: ' + str(rank) +  " of " + str(size) )
         p = Process(target=init_process, args=(rank, size, run))
@@ -106,3 +164,7 @@ if __name__ == "__main__":
     for p in processes:
         print("==> p.join(), for process:", str(p))
         p.join()
+
+    # Once training is complete, we can test the model
+    for i in range(1):
+        test(i)

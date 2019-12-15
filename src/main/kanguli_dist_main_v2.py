@@ -160,11 +160,12 @@ if __name__ == "__main__":
     for rank in range(size):
         print('==> Running rank: ' + str(rank) +  " of " + str(size) )
         #p = Process(target=init_process, args=(rank, size, run))
-        p = Process(target=train, args=(rank, model, device ))
+        p = Process(target=train)
         p.start()
         processes.append(p)
 
     for p in processes:
+        print("Joining processes")
         p.join()
 
     # Once training is complete, we can test the model

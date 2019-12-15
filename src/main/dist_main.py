@@ -94,7 +94,7 @@ if __name__ == "__main__":
     size = 3
     processes = []
     for rank in range(size):
-        print('==> Running rank: ' + rank +  " of " + size )
+        print('==> Running rank: ' + str(rank) +  " of " + str(size) )
         p = Process(target=init_process, args=(rank, size, run))
         p.start()
         processes.append(p)

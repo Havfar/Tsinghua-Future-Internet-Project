@@ -2,40 +2,14 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.distributed as dist
 
 import torchvision
 import torchvision.transforms as transforms
-
 
 import os
 import argparse
 
 from utils import progress_bar
-
-from src.main.data_partition_helpers import DataPartitioner
-
-
-
-def run(rank, size):
-    """ Distributed function to be implemented later. """
-    tensor = torch.zeros(1)
-    if rank == 0:
-        tensor += 1
-        # Send the tensor to process 1
-        dist.send(tensor=tensor, dst=1)
-    else:
-        # Receive tensor from process 0
-        dist.recv(tensor=tensor, src=0)
-    print('Rank ', rank, ' has data ', tensor[0])
-
-def init_process(rank, size, fn, backend='mpi'):
-    """ Initialize the distributed environment. """
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29500'
-    dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size)
-
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -59,22 +33,6 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
-
-def partition_dataset():
-    dataset = torchvision.datasets.CIFAR10.MNIST('./data', train=True, download=True,
-                             transform=transforms.Compose([
-                                 transforms.ToTensor(),
-                                 transforms.Normalize((0.1307,), (0.3081,))
-                             ]))
-    size = torchvision.datasets.CIFAR10.get_world_size()
-    bsz = 128 / float(size)
-    partition_sizes = [1.0 / size for _ in range(size)]
-    partition = DataPartitioner(dataset, partition_sizes)
-    partition = partition.use(dist.get_rank())
-    train_set = torch.utils.data.DataLoader(partition,
-                                         batch_size=bsz,
-                                         shuffle=True)
-    return train_set, bsz
 
 
 trainset = torchvision.datasets.CIFAR10(root='../data/', train=True, download=False, transform=transform_train)
@@ -108,9 +66,8 @@ if args.resume:
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
-
 # Training
-def train_epoch(epoch):
+def train(epoch):
     print('\nEpoch: %d' % epoch)
     net.train()
     train_loss = 0

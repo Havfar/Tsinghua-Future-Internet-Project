@@ -100,6 +100,8 @@ if __name__ == "__main__":
         p.start()
         print("==> Appending process:", str(p),"to processes.")
         processes.append(p)
+    print("==> waiting for barrier")
+    dist.barrier()
 
     for p in processes:
         print("==> p.join(), for process:", str(p))

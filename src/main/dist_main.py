@@ -96,8 +96,11 @@ if __name__ == "__main__":
     for rank in range(size):
         print('==> Running rank: ' + str(rank) +  " of " + str(size) )
         p = Process(target=init_process, args=(rank, size, run))
+        print("==> p.start(), for process:", str(p))
         p.start()
+        print("==> Appending process:", str(p),"to processes.")
         processes.append(p)
 
     for p in processes:
+        print("==> p.join(), for process:", str(p))
         p.join()

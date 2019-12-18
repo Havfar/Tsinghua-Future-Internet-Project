@@ -97,8 +97,8 @@ def partition_dataset():
     # as they run out of memoery to hold all data during training
     # also speeds up testing sending data when training is faster
     print("dataset:", dataset)
-    print("len(dataset):", len(dataset))
-    dataset = dataset[:500]
+    print("len(dataset):", len(dataset.data))
+    dataset.data = dataset.data[0:500]
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
     partition_sizes = [1.0 / size for _ in range(size)]

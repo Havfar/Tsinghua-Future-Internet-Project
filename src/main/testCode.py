@@ -162,6 +162,7 @@ def run(rank, size):
             print("target:", target)
             print("len(target)", len(target))
             total += len(target)
+            print("data:", data)
             print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (epoch_loss/(data+1), 100.*correct/total, correct, total))
             """

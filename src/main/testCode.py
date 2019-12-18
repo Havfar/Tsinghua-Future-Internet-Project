@@ -23,7 +23,7 @@ def init_process(backend='mpi'):
 
 def test_send_recv(rank):
     # dummy tensor
-    d_tensor = torch.zeros(size = 1)
+    d_tensor = torch.zeros(1)
     req1 = None
     req2 = None
     req3 = None

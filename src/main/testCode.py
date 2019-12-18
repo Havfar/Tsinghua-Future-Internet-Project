@@ -93,6 +93,12 @@ def partition_dataset():
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.1307,), (0.3081,))
                              ]))
+    # changing size of dataset for testing on the servers before allocated time
+    # as they run out of memoery to hold all data during training
+    # also speeds up testing sending data when training is faster
+    print("dataset:", dataset)
+    print("len(dataset):", len(dataset))
+    dataset = dataset[:500]
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
     partition_sizes = [1.0 / size for _ in range(size)]

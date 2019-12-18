@@ -145,7 +145,7 @@ def run(rank, size):
             output = model(data)
             loss = F.nll_loss(output, target)
             print("loss:", loss)
-            print("loss.data.item():", loss.data.item())
+            #print("loss.data.item():", loss.data.item())
             epoch_loss += loss.data.item()
             loss.backward()
             average_gradients(model)
@@ -155,14 +155,14 @@ def run(rank, size):
             # inspired from main.py
             # Prints here are to figure out what the different stuff is
             # So that they can be troubleshot (correct english conjugation?)
-            print("output:", output)
-            print("output.max(1):", output.max(1))
+            #print("output:", output)
+            #print("output.max(1):", output.max(1))
             _, predicted = output.max(1) # mulig bare .max? Vet ikke om output.max gir 2 return values for å fylle både _ og predicted?
             correct += predicted.eq(target).sum().item()
-            print("target:", target)
-            print("len(target)", len(target))
+            #print("target:", target)
+            #print("len(target)", len(target))
             total += len(target)
-            print("data:", data)
+            #print("data:", data)
             print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (epoch_loss/(batch_idx+1), 100.*correct/total, correct, total))
             """

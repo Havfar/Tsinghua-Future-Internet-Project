@@ -3,7 +3,11 @@ import torch
 import torch.distributed as dist
 import torchvision.datasets as datasets
 import torchvision.models as models
+import torch.nn.functional as F
+
 from torch import optim
+
+from torch.autograd import Variable
 
 
 from math import ceil
@@ -38,6 +42,7 @@ def test_send_recv(rank):
     req1 = None
     req2 = None
     req3 = None
+    test_tensor = torch.Tensor
     if rank == 0:
         req1 = dist.isend(tensor = d_tensor, dst = 1)
         req2 = dist.isend(tensor = d_tensor, dst = 2)
@@ -51,6 +56,33 @@ def test_send_recv(rank):
         req3.wait()
     print("Tensor:", d_tensor, "at rank:", rank)
 
+
+def run(rank, size):
+    """ Distributed Synchronous SGD Example """
+    torch.manual_seed(1234)
+    train_set, bsz = partition_dataset()
+    model = models.vgg19()
+    #model = model
+#    model = model.cuda(rank)
+
+    # Create optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+
+    num_batches = ceil(len(train_set.dataset) / float(bsz))
+    for epoch in range(10):
+        epoch_loss = 0.0
+        for data, target in train_set:
+            data, target = Variable(data), Variable(target)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            epoch_loss += loss.data[0]
+            loss.backward()
+            average_gradients(model)
+            optimizer.step()
+        print('Rank ',
+              dist.get_rank(), ', epoch ', epoch, ': ',
+              epoch_loss / num_batches)
 
 def partition_dataset():
     print('==> Preparing data..')
@@ -69,11 +101,20 @@ def partition_dataset():
                                          shuffle=True)
     return train_set, bsz
 
+
+def average_gradients(model):
+    """ Gradient averaging. """
+    size = float(dist.get_world_size())
+    for param in model.parameters():
+        dist.all_reduce(param.grad.data)
+        param.grad.data /= size
+
+
 def test_allreduce(rank):
     #group = dist.new_group([0, 1])
     tensor = torch.ones(1)
     dist.all_reduce(tensor = tensor)
-    print("Rank", rank, "has data", tensor[0])
+    # print("Rank", rank, "has data", tensor[0])
 
 
 # YOUR TRAINING CODE GOES HERE
@@ -81,31 +122,32 @@ def test_allreduce(rank):
 
 if __name__ == "__main__":
     init_process()
-    test_send_recv(dist.get_rank())
 
+    #Testing send/recv
+    #test_send_recv(dist.get_rank())
+
+    run(dist.get_rank(), dist.get_world_size())
 
     # calculate train_set and bsz
     # send to other nodes
-    if dist.get_rank() == 0:
-        train_set, bsz = partition_dataset()
-        print("train_set:", train_set, "bsz:", bsz)
-        print("len(train_set):", len(train_set))
+    # works
 
-        d_tensor = train_set
-
-    test_allreduce(dist.get_rank())
+    # works
+    # test_allreduce(dist.get_rank())
 
     # receive train_set and bsz
     #else:
 
 
     # Create models
-    model = models.vgg19()
-    print("Rank", dist.get_rank(), "created model:", model)
+    # works
+    # model = models.vgg19()
+    # print("Rank", dist.get_rank(), "created model:", model)
     
     # define optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
-    print("Rank", dist.get_rank(), "optimizer initiated:", optimizer)
+    # works
+    # optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    # print("Rank", dist.get_rank(), "optimizer initiated:", optimizer)
 
 
     dist.barrier()

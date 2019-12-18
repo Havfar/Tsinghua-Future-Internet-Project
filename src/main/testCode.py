@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
 
     # get train set and bsz
-    if dist.get_rank == 0:
+    if dist.get_rank() == 0:
         train_set, bsz = partition_dataset()
         print("train_set:", train_set, "bsz:", bsz)
         print("len(train_set):", len(train_set))

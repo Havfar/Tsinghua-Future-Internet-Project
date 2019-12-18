@@ -2,6 +2,10 @@ import os
 import torch
 import torch.distributed as dist
 import torchvision.datasets as datasets
+import torchvision.models as models
+from torch import optim
+
+
 from math import ceil
 from torchvision import transforms
 
@@ -65,6 +69,12 @@ def partition_dataset():
                                          shuffle=True)
     return train_set, bsz
 
+def test_allreduce(rank):
+    #group = dist.new_group([0, 1])
+    tensor = torch.ones(1)
+    dist.all_reduce(tensor = tensor)
+    print("Rank", rank, "has data", tensor[0])
+
 
 # YOUR TRAINING CODE GOES HERE
 
@@ -74,11 +84,29 @@ if __name__ == "__main__":
     test_send_recv(dist.get_rank())
 
 
-    # get train set and bsz
+    # calculate train_set and bsz
+    # send to other nodes
     if dist.get_rank() == 0:
         train_set, bsz = partition_dataset()
         print("train_set:", train_set, "bsz:", bsz)
         print("len(train_set):", len(train_set))
+
+        d_tensor = train_set
+
+    test_allreduce(dist.get_rank())
+
+    # receive train_set and bsz
+    #else:
+
+
+    # Create models
+    model = models.vgg19()
+    print("Rank", dist.get_rank(), "created model:", model)
+    
+    # define optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    print("Rank", dist.get_rank(), "optimizer initiated:", optimizer)
+
 
     dist.barrier()
     dist.destroy_process_group()

@@ -69,7 +69,7 @@ def run(rank, size):
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
     num_batches = ceil(len(train_set.dataset) / float(bsz))
-    for epoch in range(10):
+    for epoch in range(1):
         epoch_loss = 0.0
         for data, target in train_set:
             data, target = Variable(data), Variable(target)
@@ -77,10 +77,8 @@ def run(rank, size):
             output = model(data)
             loss = F.nll_loss(output, target)
             print("loss:", loss)
-            print("loss.data:", loss.data)
-            print("loss.data[0]:", loss.data[0])
-            print("loss.data[0].item()", loss.data[0].item())
-            epoch_loss += loss.data[0].item()
+            print("loss.data.item():", loss.data.item())
+            epoch_loss += loss.data.item()
             loss.backward()
             average_gradients(model)
             optimizer.step()

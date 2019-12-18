@@ -76,7 +76,7 @@ def run(rank, size):
             optimizer.zero_grad()
             output = model(data)
             loss = F.nll_loss(output, target)
-            epoch_loss += loss.data[0]
+            epoch_loss += loss.data[0].item()
             loss.backward()
             average_gradients(model)
             optimizer.step()

@@ -1,8 +1,8 @@
 import os
 import torch
 import torch.distributed as dist
-from torch.distributions import transforms
 import torchvision.datasets as datasets
+from torchvision import transforms
 
 
 

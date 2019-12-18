@@ -1,5 +1,5 @@
 """ Dataset partitioning helper """
-from _random import Random
+from random import Random
 
 
 class Partition(object):

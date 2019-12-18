@@ -24,6 +24,7 @@ def init_process(backend='mpi'):
 
 
 if __name__ == "__main__":
+    init_process()
 
     dist.barrier()
     dist.destroy_process_group()

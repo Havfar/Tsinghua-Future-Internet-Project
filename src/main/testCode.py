@@ -1,21 +1,18 @@
 import os
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.models as models
-import torch.nn.functional as F
 
-from torch import optim
-
-from torch.autograd import Variable
-
-
+from data_partition_helpers import DataPartitioner
 from math import ceil
+from torch import optim
+from torch.autograd import Variable
 from torchvision import transforms
 
 
 
-from data_partition_helpers import DataPartitioner
 
 DIST_BACKEND = "mpi"
 
@@ -36,55 +33,9 @@ def init_process(backend='mpi'):
     print("WORLD=", world_size)
     print("RANK=", rank)
 
-def test_send_recv(rank):
-    # dummy tensor
-    d_tensor = torch.zeros(1)
-    req1 = None
-    req2 = None
-    req3 = None
-    test_tensor = torch.Tensor
-    if rank == 0:
-        req1 = dist.isend(tensor = d_tensor, dst = 1)
-        req2 = dist.isend(tensor = d_tensor, dst = 2)
-        print("Rank:", rank, "started sending data.")
-        print("Rank:", rank, "data sent:", d_tensor)
-        req1.wait()
-        req2.wait()
-    else:
-        req3 = dist.irecv(tensor = d_tensor, src=0)
-        print("Rank:", rank, "started receiving data.")
-        req3.wait()
-    print("Tensor:", d_tensor, "at rank:", rank)
+# YOUR TRAINING CODE GOES HERE
 
 
-def run(rank, size):
-    """ Distributed Synchronous SGD Example """
-    torch.manual_seed(1234)
-    train_set, bsz = partition_dataset()
-    model = models.vgg19()
-    #model = model
-#    model = model.cuda(rank)
-
-    # Create optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
-
-    num_batches = ceil(len(train_set.dataset) / float(bsz))
-    for epoch in range(1):
-        epoch_loss = 0.0
-        for data, target in train_set:
-            data, target = Variable(data), Variable(target)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.nll_loss(output, target)
-            print("loss:", loss)
-            print("loss.data.item():", loss.data.item())
-            epoch_loss += loss.data.item()
-            loss.backward()
-            average_gradients(model)
-            optimizer.step()
-        print('Rank ',
-              dist.get_rank(), ', epoch ', epoch, ': ',
-              epoch_loss / num_batches)
 
 def partition_dataset():
     print('==> Preparing data..')
@@ -118,16 +69,122 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def test_allreduce(rank):
-    #group = dist.new_group([0, 1])
-    tensor = torch.ones(1)
-    dist.all_reduce(tensor = tensor)
-    # print("Rank", rank, "has data", tensor[0])
+def test(epoch):
+    global best_acc
+    net.eval()
+    test_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = net(inputs)
+            loss = criterion(outputs, targets)
+
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+
+    # Save checkpoint.
+    acc = 100.*correct/total
+    if acc > best_acc:
+        print('Saving..')
+        state = {
+            'net': net.state_dict(),
+            'acc': acc,
+            'epoch': epoch,
+        }
+        if not os.path.isdir('checkpoint'):
+            os.mkdir('checkpoint')
+        torch.save(state, './checkpoint/ckpt.pth')
+        best_acc = acc
 
 
-# YOUR TRAINING CODE GOES HERE
+def run(rank, size):
+    """ Distributed Synchronous SGD Example """
+    torch.manual_seed(1234)
+    train_set, bsz = partition_dataset()
+    model = models.vgg19()
+    # model = model
+    # model = model.cuda(rank)
+
+    # Create optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+
+    num_batches = ceil(len(train_set.dataset) / float(bsz))
+    for epoch in range(1):
+        epoch_loss = 0.0
+        correct = 0
+        total = 0
+        for data, target in train_set:
+            data, target = Variable(data), Variable(target)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            print("loss:", loss)
+            print("loss.data.item():", loss.data.item())
+            epoch_loss += loss.data.item()
+            loss.backward()
+            average_gradients(model)
+            optimizer.step()
+            print("output:", output)
+            print("output.max:", output.max())
+            predicted = output.max(1) # mulig bare .max?
+            correct += predicted.eq(target).sum().item()
+            print("target:", target)
+            print("len(target)", len(target))
+            total += len(target)
+            print("loss:", epoch_loss/data+1, "Acc:", correct/total)
+        print('Rank ',
+              dist.get_rank(), ', epoch ', epoch, ': ',
+              epoch_loss / num_batches)
 
 
+if __name__ == "__main__":
+    init_process()
+    run(dist.get_rank(), dist.get_world_size())
+    dist.barrier()
+    dist.destroy_process_group()
+
+
+
+
+
+#############################################
+#                                           #
+# CODE USED FOR TESTING NO USE IN PROJECT   #
+#                                           #
+#############################################
+
+
+"""
+def test_send_recv(rank):
+    # dummy tensor
+    d_tensor = torch.zeros(1)
+    req1 = None
+    req2 = None
+    req3 = None
+    test_tensor = torch.Tensor
+    if rank == 0:
+        req1 = dist.isend(tensor = d_tensor, dst = 1)
+        req2 = dist.isend(tensor = d_tensor, dst = 2)
+        print("Rank:", rank, "started sending data.")
+        print("Rank:", rank, "data sent:", d_tensor)
+        req1.wait()
+        req2.wait()
+    else:
+        req3 = dist.irecv(tensor = d_tensor, src=0)
+        print("Rank:", rank, "started receiving data.")
+        req3.wait()
+    print("Tensor:", d_tensor, "at rank:", rank)
+"""
+
+
+"""
 if __name__ == "__main__":
     init_process()
 
@@ -160,3 +217,12 @@ if __name__ == "__main__":
 
     dist.barrier()
     dist.destroy_process_group()
+    """
+
+    """
+    def test_allreduce(rank):
+    #group = dist.new_group([0, 1])
+    tensor = torch.ones(1)
+    dist.all_reduce(tensor = tensor)
+    # print("Rank", rank, "has data", tensor[0])
+    """

@@ -1,6 +1,12 @@
 import os
 import torch
 import torch.distributed as dist
+from torch.distributions import transforms
+import torchvision.datasets as datasets
+
+
+
+from data_partition_helpers import DataPartitioner
 
 DIST_BACKEND = "mpi"
 
@@ -41,12 +47,37 @@ def test_send_recv(rank):
     print("Tensor:", d_tensor, "at rank:", rank)
 
 
+def partition_dataset():
+    print('==> Preparing data..')
+    dataset = datasets.CIFAR10('./data', train=True, download=True,
+                             transform=transforms.Compose([
+                                 transforms.ToTensor(),
+                                 transforms.Normalize((0.1307,), (0.3081,))
+                             ]))
+    size = dist.get_world_size()
+    bsz = 128 / float(size)
+    partition_sizes = [1.0 / size for _ in range(size)]
+    partition = DataPartitioner(dataset, partition_sizes)
+    partition = partition.use(dist.get_rank())
+    train_set = torch.utils.data.DataLoader(partition,
+                                         batch_size=bsz,
+                                         shuffle=True)
+    return train_set, bsz
+
+
 # YOUR TRAINING CODE GOES HERE
 
 
 if __name__ == "__main__":
     init_process()
     test_send_recv(dist.get_rank())
+
+
+    # get train set and bsz
+    if dist.get_rank == 0:
+        train_set, bsz = partition_dataset()
+        print("train_set:", train_set, "bsz:", bsz)
+        print("len(train_set):", len(train_set))
 
     dist.barrier()
     dist.destroy_process_group()

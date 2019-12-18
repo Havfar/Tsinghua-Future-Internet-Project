@@ -39,26 +39,43 @@ def init_process(backend='mpi'):
 
 def partition_dataset():
     print('==> Preparing data..')
+    # Where did we get our normalizing data from? They are quite different from main.py
+    # Maybe we can improve our model by changing the transforms?
     dataset = datasets.CIFAR10('./data', train=True, download=True,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.1307,), (0.3081,))
                              ]))
+    testset = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,),(0.3081))]))
     # changing size of dataset for testing on the servers before allocated time
-    # as they run out of memoery to hold all data during training
+    # as they run out of memory to hold all data during training
     # also speeds up testing sending data when training is faster
     print("dataset:", dataset)
     print("len(dataset):", len(dataset.data))
+    # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     dataset.data = dataset.data[0:500]
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
     partition_sizes = [1.0 / size for _ in range(size)]
     partition = DataPartitioner(dataset, partition_sizes)
     partition = partition.use(dist.get_rank())
+
     train_set = torch.utils.data.DataLoader(partition,
                                          batch_size=bsz,
                                          shuffle=True)
-    return train_set, bsz
+
+    # Same procedure as above to generate test_set
+    # Also sliced testset.data here to a smaller portion of itself
+    # Only in order to speed up running the code on the servers during
+    # Our initial testing of our code.
+    testset.data = testset.data[0:500]
+    test_size = dist.get_world_size()
+    test_bsz = ceil(128 / float(test_size))
+    partition_test_sizes = [1 / test_size for _ in range(test_size)]
+    partition_test = DataPartitioner(testset, partition_test_sizes)
+    partition_test = partition_test.use(dist.get_rank())
+    test_set = torch.utils.data.DataLoader(partition_test, batch_size=test_bsz, shuffle=False)
+    return train_set, bsz, test_set, test_bsz
 
 
 def average_gradients(model):
@@ -107,16 +124,18 @@ def test(epoch):
 def run(rank, size):
     """ Distributed Synchronous SGD Example """
     torch.manual_seed(1234)
-    train_set, bsz = partition_dataset()
+
+    # Load train set and batch size - Extented in Accuracy, test, loss to include loading test_set
+    train_set, bsz, test_set, test_bsz = partition_dataset()
     model = models.vgg19()
-    # model = model
-    # model = model.cuda(rank)
 
     # Create optimizer
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
     num_batches = ceil(len(train_set.dataset) / float(bsz))
     for epoch in range(1):
+        # Set model to training mode [Introduced with accuracy, loss, testing]
+        model.train()
         epoch_loss = 0.0
         correct = 0
         total = 0
@@ -131,17 +150,53 @@ def run(rank, size):
             loss.backward()
             average_gradients(model)
             optimizer.step()
+
+            # Here begins the checking of accuracy and loss (new code)
+            # inspired from main.py
+            # Prints here are to figure out what the different stuff is
+            # So that they can be troubleshot (correct english conjugation?)
             print("output:", output)
-            print("output.max:", output.max())
-            predicted = output.max(1) # mulig bare .max?
+            print("output.max(1):", output.max(1))
+            _, predicted = output.max(1) # mulig bare .max? Vet ikke om output.max gir 2 return values for å fylle både _ og predicted?
             correct += predicted.eq(target).sum().item()
             print("target:", target)
             print("len(target)", len(target))
             total += len(target)
-            print("loss:", epoch_loss/data+1, "Acc:", correct/total)
+            print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (epoch_loss/(data+1), 100.*correct/total, correct, total))
+            """
+            # Egenskrevet
+            print("Rank:", dist.get_rank(), "loss:", epoch_loss/data+1, "Acc:", 100.*correct/total)
+            """
+            
         print('Rank ',
               dist.get_rank(), ', epoch ', epoch, ': ',
               epoch_loss / num_batches)
+
+        # Thought: testing goes here, after all the training, since we don't call a train and a test function
+        epoch_test_loss = 0
+        test_correct = 0
+        test_total = 0
+
+        # Set model to evaluation mode [Introduced with accuracy, loss, testing]
+        model.eval()
+        with torch.no_grad():
+            for data, target in test_set:
+                data, target = Variable(data), Variable(target)
+                output = model(data)
+                loss = F.nll_loss(output, target)
+
+                epoch_test_loss += loss.data.item()
+                _, predicted = output.max(1) # mulig bare .max? Vet ikke om output.max gir 2 return values for å fylle både _ og predicted?
+                test_total += len(target) # egentlig targets.size i main.py, men det vil ikke fungere for oss tror jeg
+                print(predicted.eq(target))
+                test_correct += predicted.eq(target).sum().item()
+                print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (epoch_test_loss/(data+1), 100.*test_correct/test_total, test_correct, test_total))
+                """
+                # Egen skrevet
+                print("Rank:", dist.get_rank(), "loss:", epoch_test_loss/data+1, "Acc:", 100.*test_correct/test_total)"""
+
 
 
 if __name__ == "__main__":

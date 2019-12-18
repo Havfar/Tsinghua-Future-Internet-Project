@@ -139,7 +139,7 @@ def run(rank, size):
         epoch_loss = 0.0
         correct = 0
         total = 0
-        for data, target in train_set:
+        for batch_idx, (data, target) in enumerate(train_set):
             data, target = Variable(data), Variable(target)
             optimizer.zero_grad()
             output = model(data)
@@ -164,7 +164,7 @@ def run(rank, size):
             total += len(target)
             print("data:", data)
             print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                % (epoch_loss/(data+1), 100.*correct/total, correct, total))
+                % (epoch_loss/(batch_idx+1), 100.*correct/total, correct, total))
             """
             # Egenskrevet
             print("Rank:", dist.get_rank(), "loss:", epoch_loss/data+1, "Acc:", 100.*correct/total)
@@ -182,7 +182,7 @@ def run(rank, size):
         # Set model to evaluation mode [Introduced with accuracy, loss, testing]
         model.eval()
         with torch.no_grad():
-            for data, target in test_set:
+            for test_batch_idx, (data, target) in enumerate(test_set):
                 data, target = Variable(data), Variable(target)
                 output = model(data)
                 loss = F.nll_loss(output, target)
@@ -193,7 +193,7 @@ def run(rank, size):
                 print(predicted.eq(target))
                 test_correct += predicted.eq(target).sum().item()
                 print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                % (epoch_test_loss/(data+1), 100.*test_correct/test_total, test_correct, test_total))
+                % (epoch_test_loss/(test_batch_idx+1), 100.*test_correct/test_total, test_correct, test_total))
                 """
                 # Egen skrevet
                 print("Rank:", dist.get_rank(), "loss:", epoch_test_loss/data+1, "Acc:", 100.*test_correct/test_total)"""

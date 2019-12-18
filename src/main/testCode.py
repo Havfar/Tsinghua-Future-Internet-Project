@@ -272,9 +272,9 @@ if __name__ == "__main__":
 
     dist.barrier()
     dist.destroy_process_group()
-    """
+"""
 
-    """
+"""
     def test_allreduce(rank):
     #group = dist.new_group([0, 1])
     tensor = torch.ones(1)

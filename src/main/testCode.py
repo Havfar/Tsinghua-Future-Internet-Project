@@ -53,7 +53,7 @@ def partition_dataset():
     #print("dataset:", dataset)
     print("len(dataset):", len(dataset.data))
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
-    dataset.data = dataset.data[0:500]
+    dataset.data = dataset.data#[0:500]
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
     partition_sizes = [1.0 / size for _ in range(size)]
@@ -68,7 +68,7 @@ def partition_dataset():
     # Also sliced testset.data here to a smaller portion of itself
     # Only in order to speed up running the code on the servers during
     # Our initial testing of our code.
-    testset.data = testset.data[0:500]
+    testset.data = testset.data#[0:500]
     test_size = dist.get_world_size()
     test_bsz = ceil(128 / float(test_size))
     partition_test_sizes = [1 / test_size for _ in range(test_size)]

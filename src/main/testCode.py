@@ -46,11 +46,11 @@ def partition_dataset():
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.1307,), (0.3081,))
                              ]))
-    testset = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,),(0.3081))]))
+    testset = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,),(0.3081,))]))
     # changing size of dataset for testing on the servers before allocated time
     # as they run out of memory to hold all data during training
     # also speeds up testing sending data when training is faster
-    print("dataset:", dataset)
+    #print("dataset:", dataset)
     print("len(dataset):", len(dataset.data))
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     dataset.data = dataset.data[0:500]
@@ -163,7 +163,7 @@ def run(rank, size):
             #print("len(target)", len(target))
             total += len(target)
             #print("data:", data)
-            print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            print("Rank:", rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (epoch_loss/(batch_idx+1), 100.*correct/total, correct, total))
             """
             # Egenskrevet
@@ -171,7 +171,7 @@ def run(rank, size):
             """
             
         print('Rank ',
-              dist.get_rank(), ', epoch ', epoch, ': ',
+              rank, ', epoch ', epoch, ': ',
               epoch_loss / num_batches)
 
         # Thought: testing goes here, after all the training, since we don't call a train and a test function
@@ -192,7 +192,7 @@ def run(rank, size):
                 test_total += len(target) # egentlig targets.size i main.py, men det vil ikke fungere for oss tror jeg
                 print(predicted.eq(target))
                 test_correct += predicted.eq(target).sum().item()
-                print("Rank:", dist.get_rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                print("Rank:", rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (epoch_test_loss/(test_batch_idx+1), 100.*test_correct/test_total, test_correct, test_total))
                 """
                 # Egen skrevet
@@ -202,7 +202,7 @@ def run(rank, size):
 
 if __name__ == "__main__":
     init_process()
-    run(dist.get_rank(), dist.get_world_size())
+    run(dist.get_rank, dist.get_world_size())
     dist.barrier()
     dist.destroy_process_group()
 

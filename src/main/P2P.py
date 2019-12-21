@@ -1,4 +1,6 @@
 import os
+import time
+
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -161,9 +163,13 @@ def run(rank, validator):
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
     num_batches = ceil(len(train_set.dataset) / float(bsz))
+
     for epoch in range(1):
         # Set model to training mode [Introduced with accuracy, loss, testing]
+        t1 = time.time()
         train(model, rank, optimizer, train_set, epoch, num_batches )
+        t2 = time.time()
+        print("Training time for epoch: ", epoch, " rank: ", rank, " time: ", t2-t1)
         if(rank == validator):
             test(model, test_set, rank, epoch, num_batches, output_file)
 

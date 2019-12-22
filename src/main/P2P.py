@@ -153,8 +153,8 @@ def run(rank, validator):
     output_file = open("VGG19_P2P_output.txt", "w")
 
     # Load train set and batch size - Extented in Accuracy, test, loss to include loading test_set
-
-    train_set, bsz, test_set = partition_dataset(rank=validator)
+    inlcudeTestSet = (rank == validator)
+    train_set, bsz, test_set = partition_dataset(inlcudeTestSet)
     model = models.vgg19()
 
     # Create optimizer

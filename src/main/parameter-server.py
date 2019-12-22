@@ -230,7 +230,7 @@ def accuracy(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-
+"""
 def flatten_all(model):
     vec = []
     for param in model.parameters():
@@ -238,8 +238,9 @@ def flatten_all(model):
     for b in model._all_buffers():
         vec.append(b.data.view(-1))
     return torch.cat(vec)
+"""
 
-
+"""
 def unflatten_all(model, vec):
     pointer = 0
     for param in model.parameters():
@@ -250,7 +251,7 @@ def unflatten_all(model, vec):
         num_param = torch.prod(torch.LongTensor(list(b.size())))
         b.data = vec[pointer:pointer + num_param].view(b.size())
         pointer += num_param
-
+"""
 
 def flatten(model):
     vec = []

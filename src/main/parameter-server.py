@@ -26,7 +26,7 @@ parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
 
 
 def coordinate(rank, world_size):
-    output = open("VGG19_output.txt", "w")
+    output = open("VGG19_PS_output.txt", "w")
     args = parser.parse_args()
     model = models.vgg19()
     model_flat = flatten_all(model)
@@ -276,3 +276,5 @@ if __name__ == '__main__':
         coordinate(rank, world_size - 1)
     else:
         run(rank, world_size - 1, pserver)
+
+    dist.destroy_process_group()

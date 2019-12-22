@@ -49,7 +49,7 @@ def partition_dataset(includeTest):
         [transforms.ToTensor(),
          transforms.Normalize(((0.1307,), (0.3081,)))])
         test_set = datasets.CIFAR10(root='./data', train=False, download=False, transform=test_transform)
-        test_loader = torch.utils.data.DataLoader(test(), batch_size=100, pin_memory=True, shuffle=False,)
+        test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, pin_memory=True, shuffle=False,)
         # test_set = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose(
         #     [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]))
     # changing size of dataset for testing on the servers before allocated time

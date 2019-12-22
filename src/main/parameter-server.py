@@ -58,6 +58,7 @@ def coordinate(rank, world_size):
 
     time_cost = 0
     for epoch in range(args.epochs):
+        print("Rank: ", rank, "starting epoch:", epoch)
         dist.barrier()
         t1 = time.time()
         # for i, (input, target) in enumerate(val_loader):
@@ -68,7 +69,7 @@ def coordinate(rank, world_size):
             model_flat.div_(2)
             unflatten(model, model_flat)
             dist.broadcast(model, src=rank)
-
+        print("Rank:", rank, "calling dist.barrier()")
         dist.barrier()
         t2 = time.time()
         time_cost += t2 - t1
@@ -124,6 +125,7 @@ def run(rank, world_size, pserver):
                                                num_workers=2, sampler=train_sampler)
 
     for epoch in range(args.epochs):
+        print("rank:", rank, "epoch:", epoch, "calling dist.barrier() top of epoch")
         dist.barrier()
 
         train_sampler.set_epoch(epoch)

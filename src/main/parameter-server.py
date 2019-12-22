@@ -189,7 +189,7 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
         # communicate
         model_flat = flatten(model)
         dist.reduce(model_flat, dst=pserver, op=dist.reduce_op.SUM)
-        dist.broadcast(model_float, src=pserver)
+        dist.broadcast(model_flat, src=pserver)
         model = unflatten(model_flat)
 
         optimizer.step()

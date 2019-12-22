@@ -10,6 +10,8 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
+from data_partition_helpers import DataPartitioner
+
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.distributed as dist
@@ -123,10 +125,22 @@ def run(rank, world_size, pserver):
          transforms.ToTensor(),
          transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
+
     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
-                                               num_workers=2, sampler=train_sampler)
+
+    size = world_size
+    bsz = ceil(128 / float(size))
+    partition_sizes = [0.5, 0.5]#[1.0 / size for _ in range(size)]
+    partition = DataPartitioner(trainset, partition_sizes)
+    partition = partition.use(rank-1)
+
+    train_loader = torch.utils.data.DataLoader(partition,
+                                            batch_size=bsz,
+                                            shuffle=True)
+
+    #train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
+    #train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
+    #                                           num_workers=2, sampler=train_sampler)
 
     for epoch in range(args.epochs):
         print("rank:", rank, "epoch:", epoch, "calling dist.barrier() top of epoch")

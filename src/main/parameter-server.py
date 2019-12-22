@@ -30,6 +30,7 @@ def coordinate(rank, world_size):
     model = models.vgg19()
     # model_flat = flatten_all(model)
     model_flat = flatten(model)
+    print("rank:", rank, "len model flat:", len(model_flat))
     dist.broadcast(model_flat, 0)
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cpu()

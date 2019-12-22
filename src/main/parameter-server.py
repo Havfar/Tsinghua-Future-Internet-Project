@@ -65,6 +65,7 @@ def coordinate(rank, world_size):
         for i in range(len(train_loader)):
             model_flat = flatten(model)
             # Todo endre rank
+            pinrt("rank ", rank, "waiting for reduce of model", "i in len(trainloader):", i)
             dist.reduce(model_flat, dst=rank, op=dist.reduce_op.SUM)
             model_flat.div_(2)
             unflatten(model, model_flat)
@@ -126,7 +127,7 @@ def run(rank, world_size, pserver):
 
     for epoch in range(args.epochs):
         print("rank:", rank, "epoch:", epoch, "calling dist.barrier() top of epoch")
-        dist.barrier()
+        #dist.barrier()
 
         train_sampler.set_epoch(epoch)
         loss = train(train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)  # , model_l, model_r)

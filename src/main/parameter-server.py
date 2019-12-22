@@ -150,7 +150,7 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
 
     # switch to train mode
     model.train()
-
+    print("rank:", rank, "trainloader:", train_loader)
     for i, (input, target) in enumerate(train_loader):
         print("rank:", rank, "training: i:", i)
         input_var, target_var = Variable(input), Variable(target)

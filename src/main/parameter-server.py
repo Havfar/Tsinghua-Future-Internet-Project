@@ -99,7 +99,7 @@ def run(rank, world_size, pserver):
     model = models.vgg19()
     #model_flat = flatten_all(model)
     model_flat = flatten(model)
-    dist.broadcast(model_flat, world_size)
+    dist.broadcast(model_flat, src=pserver)
     #unflatten_all(model, model_flat)
     unflatten(model, model_flat)
     # model_l = flatten(model)

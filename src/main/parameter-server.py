@@ -11,6 +11,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 from data_partition_helpers import DataPartitioner
+from math import ceil
 
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets

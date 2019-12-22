@@ -51,7 +51,7 @@ def coordinate(rank, world_size):
 
     val_transform = transforms.Compose(
         [transforms.ToTensor(),
-         transforms.Normalize(((0.1307,), (0.3081,)))])
+         transforms.Normalize((0.1307,), (0.3081,))])
 
     valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
     val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)

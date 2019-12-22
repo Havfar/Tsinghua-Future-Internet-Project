@@ -28,7 +28,8 @@ def coordinate(rank, world_size):
     output = open("VGG19_PS_output.txt", "w")
     args = parser.parse_args()
     model = models.vgg19()
-    model_flat = flatten_all(model)
+    # model_flat = flatten_all(model)
+    model_flat = flatten(model)
     dist.broadcast(model_flat, rank)
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cpu()
@@ -77,7 +78,8 @@ def coordinate(rank, world_size):
         loss.div_(world_size)
         dist.reduce(model_flat, dst=rank, op=dist.reduce_op.SUM)
         model_flat.div_(world_size)
-        unflatten_all(model, model_flat)
+        #unflatten_all(model, model_flat)
+        unflatten(model, model_flat)
 
         # evaluate on validation set
         _, prec1 = validate(val_loader, model, criterion)
@@ -93,9 +95,11 @@ def run(rank, world_size, pserver):
     current_lr = args.lr
 
     model = models.vgg19()
-    model_flat = flatten_all(model)
+    #model_flat = flatten_all(model)
+    model_flat = flatten(model)
     dist.broadcast(model_flat, world_size)
-    unflatten_all(model, model_flat)
+    #unflatten_all(model, model_flat)
+    unflatten(model, model_flat)
     # model_l = flatten(model)
     # model_r = flatten(model)
     # define loss function (criterion) and optimizer
@@ -125,7 +129,8 @@ def run(rank, world_size, pserver):
         train_sampler.set_epoch(epoch)
         loss = train(train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)  # , model_l, model_r)
         dist.barrier()
-        model_flat = flatten_all(model)
+        #model_flat = flatten_all(model)
+        model_flat = flatten(model)
 
         dist.reduce(torch.FloatTensor([loss]), pserver, op=dist.reduce_op.SUM)
         dist.reduce(model_flat, pserver, op=dist.reduce_op.SUM)

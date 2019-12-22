@@ -43,6 +43,7 @@ def partition_dataset(includeTest):
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.1307,), (0.3081,))]))
     test_set = None
+    test_loader = None
     if includeTest:
         test_transform  = transforms.Compose(
         [transforms.ToTensor(),

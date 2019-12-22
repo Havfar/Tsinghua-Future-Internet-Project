@@ -16,7 +16,6 @@ import torch.distributed as dist
 import torchvision.models as models
 from torch.autograd import Variable
 
-from models import *
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('--epochs', default=1, type=int, metavar='N',

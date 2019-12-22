@@ -60,7 +60,7 @@ def partition_dataset(includeTest):
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
-    partition_sizes = [0.5, 0.2, 0.3]#[1.0 / size for _ in range(size)]
+    partition_sizes = [1.0 / 3 for _ in range(3)]#[1.0 / size for _ in range(size)]
     partition = DataPartitioner(dataset, partition_sizes)
     partition = partition.use(dist.get_rank())
 
@@ -89,7 +89,7 @@ def train(model, rank, optimizer, train_set, epoch, num_batches):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        print("loss:", loss)
+        # print("loss:", loss)
         # print("loss.data.item():", loss.data.item())
         epoch_loss += loss.data.item()
         loss.backward()
@@ -109,12 +109,9 @@ def train(model, rank, optimizer, train_set, epoch, num_batches):
         # print("len(target)", len(target))
         total += len(target)
         # print("data:", data)
-        print("Rank:", rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        print(batch_idx, "/", num_batches ," Rank:", rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
               % (epoch_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-        """
-        # Egenskrevet
-        print("Rank:", dist.get_rank(), "loss:", epoch_loss/data+1, "Acc:", 100.*correct/total)
-        """
+
 
     print('Rank ', rank, ', epoch ', epoch, ': ', epoch_loss / num_batches)
 
@@ -181,7 +178,7 @@ if __name__ == "__main__":
 
     # validator equal to nasp-cpu-01
     validator = 0
-    run(dist.get_rank, validator)
+    run(dist.get_rank(), validator)
     dist.barrier()
     dist.destroy_process_group()
 

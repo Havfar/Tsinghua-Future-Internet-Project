@@ -45,11 +45,12 @@ def partition_dataset(includeTest):
     test_set = None
     test_loader = None
     if includeTest:
-        test_transform  = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize(((0.1307,), (0.3081,)))])
-        test_set = datasets.CIFAR10(root='./data', train=False, download=False, transform=test_transform)
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, pin_memory=True, shuffle=False,)
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+        test_set = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(test_set, batch_size=100, shuffle=False, num_workers=2)
         # test_set = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.Compose(
         #     [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]))
     # changing size of dataset for testing on the servers before allocated time
@@ -60,7 +61,7 @@ def partition_dataset(includeTest):
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
-    partition_sizes = [1.0 / 3 for _ in range(3)]#[1.0 / size for _ in range(size)]
+    partition_sizes = [1.0 / size for _ in range(size)]#[1.0 / size for _ in range(size)]
     partition = DataPartitioner(dataset, partition_sizes)
     partition = partition.use(dist.get_rank())
 

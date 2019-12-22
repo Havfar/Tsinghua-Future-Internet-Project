@@ -132,7 +132,7 @@ def run(rank, world_size, pserver):
 
     size = world_size
     bsz = ceil(128 / float(size))
-    partition_sizes = [0.5, 0.5]#[1.0 / size for _ in range(size)]
+    partition_sizes = [1.0/ size for _ in range(size)]#[1.0 / size for _ in range(size)]
     partition = DataPartitioner(trainset, partition_sizes)
     partition = partition.use(rank-1)
 

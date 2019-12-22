@@ -154,7 +154,7 @@ def run(rank, validator):
 
     # Load train set and batch size - Extented in Accuracy, test, loss to include loading test_set
 
-    train_set, bsz, test_set = partition_dataset(rank==validator)
+    train_set, bsz, test_set = partition_dataset(rank=validator)
     model = models.vgg19()
 
     # Create optimizer

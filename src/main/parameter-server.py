@@ -137,10 +137,10 @@ def run(rank, world_size, pserver):
 
     
 
-    train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
+    #train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
     train_loader = torch.utils.data.DataLoader(partition,
                                             batch_size=bsz,
-                                            shuffle=True, sampler=train_sampler)
+                                            shuffle=True)
     #train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
     #                                           num_workers=2, sampler=train_sampler)
 
@@ -148,7 +148,7 @@ def run(rank, world_size, pserver):
         print("rank:", rank, "epoch:", epoch, "calling dist.barrier() top of epoch")
         dist.barrier()
 
-        train_sampler.set_epoch(epoch)
+        #train_sampler.set_epoch(epoch)
         loss = train(train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)  # , model_l, model_r)
         dist.barrier()
         #model_flat = flatten_all(model)

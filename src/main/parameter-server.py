@@ -72,8 +72,9 @@ def coordinate(rank, world_size):
             print("rank ", rank, "waiting for reduce of model", "i in len(trainloader):", i)
             dist.reduce(model_flat, dst=rank, op=dist.reduce_op.SUM)
             model_flat.div_(2)
-            unflatten(model, model_flat)
-            dist.broadcast(model, src=rank)
+            dist.broadcast(model_flat, src=rank)
+            #unflatten(model, model_flat)
+
         print("Rank:", rank, "calling dist.barrier()")
         dist.barrier()
         t2 = time.time()
@@ -188,7 +189,8 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
         # communicate
         model_flat = flatten(model)
         dist.reduce(model_flat, dst=pserver, op=dist.reduce_op.SUM)
-        dist.broadcast(model, src=pserver)
+        dist.broadcast(model_float, src=pserver)
+        model = unflatten(model_flat)
 
         optimizer.step()
 

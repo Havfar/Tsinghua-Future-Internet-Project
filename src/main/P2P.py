@@ -61,7 +61,7 @@ def partition_dataset(includeTest):
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
-    partition_sizes = [1.0 / size for _ in range(3)]#[1.0 / size for _ in range(size)]
+    partition_sizes = [1.0 / size for _ in range(size)]#[1.0 / size for _ in range(size)]
     partition = DataPartitioner(dataset, partition_sizes)
     partition = partition.use(dist.get_rank())
 

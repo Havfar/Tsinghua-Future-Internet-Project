@@ -135,11 +135,12 @@ def run(rank, world_size, pserver):
     partition = DataPartitioner(trainset, partition_sizes)
     partition = partition.use(rank-1)
 
+    
+
+    train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
     train_loader = torch.utils.data.DataLoader(partition,
                                             batch_size=bsz,
-                                            shuffle=True)
-
-    #train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
+                                            shuffle=True, sampler=train_sampler)
     #train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
     #                                           num_workers=2, sampler=train_sampler)
 

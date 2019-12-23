@@ -80,6 +80,7 @@ def average_gradients(model):
 
 
 def train(model, rank, optimizer, train_set, epoch, num_batches):
+    dist.barrier()
     model.train()
     epoch_loss = 0.0
     correct = 0

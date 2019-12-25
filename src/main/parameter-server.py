@@ -35,6 +35,8 @@ def coordinate(rank, world_size):
     model_flat = flatten(model)
     print("rank:", rank, "len model flat:", len(model_flat))
     dist.broadcast(model_flat, 0)
+
+
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cpu()
 
@@ -48,14 +50,27 @@ def coordinate(rank, world_size):
          transforms.ToTensor(),
          transforms.Normalize((0.1307,), (0.3081,))])
 
+
+    # num workers kan forsøkes endres til = 0. Evt. les mer om dette.
+    # Drop last gjør at vi ikke får tull med at settet ikke kan deles på alle processene.
     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
+
+    # Tror denne fungerer slik at den passer på at hele datasettet blir fordelt på alle workers.
+    # I den forstand at hver worker velger tilfeldig data av datasettet ved hver epoch.
+    # Dette gjør at de ulike workerne får forskjellig data, men hele settet blir dekt ved hver epoch.
     train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
+
+    # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
+    # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
+
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
+    # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
     val_transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.1307,), (0.3081,))])
+
 
     valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
     val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)
@@ -101,6 +116,7 @@ def run(rank, world_size, pserver):
     args = parser.parse_args()
     current_lr = args.lr
 
+    # create the model
     model = models.vgg19()
     #model_flat = flatten_all(model)
     model_flat = flatten(model)
@@ -109,8 +125,7 @@ def run(rank, world_size, pserver):
     dist.broadcast(model_flat, src=pserver)
     #unflatten_all(model, model_flat)
     unflatten(model, model_flat)
-    # model_l = flatten(model)
-    # model_r = flatten(model)
+
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cpu()
 
@@ -133,15 +148,25 @@ def run(rank, world_size, pserver):
     size = world_size
     bsz = ceil(128 / float(size))
     partition_sizes = [1.0/ size for _ in range(size)]#[1.0 / size for _ in range(size)]
-    partition = DataPartitioner(trainset, partition_sizes)
-    partition = partition.use(rank-1)
+
+    train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
+
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
+                                               num_workers=2, sampler=train_sampler)
+
+    #partition = DataPartitioner(trainset, partition_sizes)
+    #partition = partition.use(rank-1)
+
+    
 
     
 
     #train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
+    """
     train_loader = torch.utils.data.DataLoader(partition,
                                             batch_size=bsz,
-                                            shuffle=True)
+                                            shuffle=True)"""
+
     #train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, shuffle=False,
     #                                           num_workers=2, sampler=train_sampler)
 
@@ -155,6 +180,7 @@ def run(rank, world_size, pserver):
         #model_flat = flatten_all(model)
         model_flat = flatten(model)
 
+        #reduce loss and reduce the model
         dist.reduce(torch.FloatTensor([loss]), pserver, op=dist.reduce_op.SUM)
         dist.reduce(model_flat, pserver, op=dist.reduce_op.SUM)
 
@@ -168,7 +194,11 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
     # switch to train mode
     model.train()
     print("rank:", rank, "trainloader:", train_loader)
+
+    # Run a batch
     for i, (input, target) in enumerate(train_loader):
+        t1 = time.time()
+
         print("rank:", rank, "training: i:", i)
         input_var, target_var = Variable(input), Variable(target)
 
@@ -186,13 +216,28 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
         losses.update(loss.data.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
 
+        t2 = time.time()
+        train_time = t2-t1
+
         # communicate
         model_flat = flatten(model)
+
+        t3 = time.time()
         dist.reduce(model_flat, dst=pserver, op=dist.reduce_op.SUM)
-        dist.broadcast(model_flat, src=pserver)
+        t4 = time.time()
+
+        communication_time = t4-t3
+
+        # Det er her vi delte verdier dobbelt opp. All reduce på modellen sørger for at alle har modellen
+        # Når vi kjører broadcast så sender vi plutselig all dataen på nytt.
+        # dist.broadcast(model_flat, src=pserver) --- utkommentert. Vi bruker reduce istedenfor
         unflatten(model, model_flat)
 
         optimizer.step()
+
+        output.write('%d %3f %3f %3f %3f %3f\n' % ("Rank: " + rank, "epoch: " + epoch, "train time cost: " + train_time, "communication time: " + communication_time,"loss: " + loss.item(), "prec: "+ prec1))
+        output.flush()
+
 
     return losses.avg
 

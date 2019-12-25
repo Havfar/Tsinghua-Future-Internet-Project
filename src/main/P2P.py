@@ -57,7 +57,6 @@ def partition_dataset(includeTest):
     # as they run out of memory to hold all data during training
     # also speeds up testing sending data when training is faster
     # print("dataset:", dataset)
-    print("len(dataset):", len(dataset.data))
     # changing dataset.data to a slice of itself for testing on servers whilst cpu power is low (before our allocated time for testing)
     size = dist.get_world_size()
     bsz = ceil(128 / float(size))
@@ -81,6 +80,7 @@ def average_gradients(model):
 
 
 def train(model, rank, optimizer, train_set, epoch, num_batches):
+    dist.barrier()
     model.train()
     epoch_loss = 0.0
     correct = 0
@@ -116,7 +116,7 @@ def train(model, rank, optimizer, train_set, epoch, num_batches):
 
     print('Rank ', rank, ', epoch ', epoch, ': ', epoch_loss / num_batches)
 
-def test(model, test_set, rank, epoch, num_batches, output_file):
+def test(model, test_set, rank, epoch, num_batches, output_file, training_time):
     # Thought: testing goes here, after all the training, since we don't call a train and a test function
     epoch_test_loss = 0
     test_correct = 0
@@ -133,7 +133,6 @@ def test(model, test_set, rank, epoch, num_batches, output_file):
             epoch_test_loss += loss.data.item()
             _, predicted = output.max(1)
             test_total += len(target)
-            print(predicted.eq(target))
             test_correct += predicted.eq(target).sum().item()
             print("Rank:", rank, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                   % (epoch_test_loss / (test_batch_idx + 1), 100. * test_correct / test_total, test_correct,
@@ -142,7 +141,7 @@ def test(model, test_set, rank, epoch, num_batches, output_file):
             #Egen skrevet
             print("Rank:", dist.get_rank(), "loss:", epoch_test_loss/data+1, "Acc:", 100.*test_correct/test_total)
             """
-        output_file.write('%d %3f %3f\n' % (epoch, epoch_test_loss, test_correct / test_total))
+        output_file.write('%d %3f %3f %3f \n' % (epoch, epoch_test_loss, test_correct / test_total, training_time))
         output_file.flush()
     print('Rank ',
           rank, ', epoch ', epoch, ': ',
@@ -163,14 +162,14 @@ def run(rank, validator):
 
     num_batches = ceil(len(train_set.dataset) / float(bsz))
 
-    for epoch in range(1):
+    for epoch in range(60):
         # Set model to training mode [Introduced with accuracy, loss, testing]
         t1 = time.time()
         train(model, rank, optimizer, train_set, epoch, num_batches )
         t2 = time.time()
         print("Training time for epoch: ", epoch, " rank: ", rank, " time: ", t2-t1)
         if(rank == validator):
-            test(model, test_set, rank, epoch, num_batches, output_file)
+            test(model, test_set, rank, epoch, num_batches, output_file, t2-t1)
 
     output_file.close()
 

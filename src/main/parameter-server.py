@@ -85,9 +85,11 @@ def coordinate(rank, world_size):
             model_flat = flatten(model)
             # Todo endre rank
             print("rank ", rank, "waiting for reduce of model", "i in len(trainloader):", i)
-            dist.reduce(model_flat, dst=rank, op=dist.reduce_op.SUM)
+            dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
             model_flat.div_(2)
-            dist.broadcast(model_flat, src=rank)
+
+            # fjernet broadcast her, for vi har nettopp all reduced modellen, ingen vits å dele to ganger
+            # dist.broadcast(model_flat, src=rank)
             #unflatten(model, model_flat)
 
         print("Rank:", rank, "calling dist.barrier()")
@@ -96,9 +98,9 @@ def coordinate(rank, world_size):
         time_cost += t2 - t1
         model_flat.zero_()
         loss = torch.FloatTensor([0])
-        dist.reduce(loss, dst=rank, op=dist.reduce_op.SUM)
+        dist.reduce(loss, dst=rank, op=dist.ReduceOp.SUM)
         loss.div_(world_size)
-        dist.reduce(model_flat, dst=rank, op=dist.reduce_op.SUM)
+        dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
         model_flat.div_(world_size)
         #unflatten_all(model, model_flat)
         unflatten(model, model_flat)
@@ -181,8 +183,8 @@ def run(rank, world_size, pserver):
         model_flat = flatten(model)
 
         #reduce loss and reduce the model
-        dist.reduce(torch.FloatTensor([loss]), pserver, op=dist.reduce_op.SUM)
-        dist.reduce(model_flat, pserver, op=dist.reduce_op.SUM)
+        dist.reduce(torch.FloatTensor([loss]), pserver, op=dist.ReduceOp.SUM)
+        dist.reduce(model_flat, pserver, op=dist.ReduceOp.SUM)
 
         # output.write('Epoch: %d  Time: %3f  Train_loss: %3f  Val_acc: %3f\n'%(epoch,time_cost,loss,prec1))
 
@@ -223,7 +225,7 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
         model_flat = flatten(model)
 
         t3 = time.time()
-        dist.reduce(model_flat, dst=pserver, op=dist.reduce_op.SUM)
+        dist.reduce(model_flat, dst=pserver, op=dist.ReduceOp.SUM)
         t4 = time.time()
 
         communication_time = t4-t3

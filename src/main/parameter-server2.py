@@ -274,15 +274,15 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
         input_var, target_var = Variable(input), Variable(target)
 
         # compute output
-        output = model(input_var)
-        loss = criterion(output, target_var)
+        model_output = model(input_var)
+        loss = criterion(model_output, target_var)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
 
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))
+        prec1 = accuracy(model_output.data, target, topk=(1,))
         losses.update(loss.data.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
 
@@ -316,7 +316,7 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
 
         optimizer.step()
 
-        output.write('%d %3f %3f %3f %3f %3f %3f %3f\n' % ("Rank: " + rank, "epoch: " + epoch, "batch", batch_idx, "train time cost: " + train_time, "communication time: " + communication_time, "loss: " + loss.item(), "prec: "+ prec1))
+        output.write('%d %3f %3f %3f %3f %3f %3f %3f\n' % ("Rank: " + rank, "epoch: " + epoch, "batch", batch_idx, "train time cost: " + train_time, "communication time: " + communication_time, "loss: " + (loss.item()), "prec: "+ prec1))
         output.flush()
 
 
@@ -336,11 +336,11 @@ def validate(val_loader, model, criterion):
 
         # compute output
         with torch.no_grad():
-            output = model(input_var)
-            loss = criterion(output, target_var)
+            mode_output = model(input_var)
+            loss = criterion(model_output, target_var)
 
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))
+        prec1 = accuracy(model_output.data, target, topk=(1,))
         losses.update(loss.data.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
 
@@ -366,12 +366,12 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def accuracy(output, target, topk=(1,)):
+def accuracy(model_output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
 
-    _, pred = output.topk(maxk, 1, True, True)
+    _, pred = model_output.topk(maxk, 1, True, True)
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 

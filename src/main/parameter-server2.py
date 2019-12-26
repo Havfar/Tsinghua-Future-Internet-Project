@@ -181,6 +181,8 @@ def run(rank, world_size, pserver):
     # num workers kan forsøkes endres til = 0. Evt. les mer om dette.
     # Drop last gjør at vi ikke får tull med at settet ikke kan deles på alle processene.
     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
+    trainset = trainset[:5000]
+    print(len(trainset))
 
     # Tror denne fungerer slik at den passer på at hele datasettet blir fordelt på alle workers.
     # I den forstand at hver worker velger tilfeldig data av datasettet ved hver epoch.
@@ -232,7 +234,7 @@ def run(rank, world_size, pserver):
         # evaluate on validation set
 
         if rank == pserver:
-            output.write('Validate epoch', epoch)
+            output.write('Validate epoch %s \n' % (epoch))
             _, prec1 = validate(val_loader, model, criterion)
             output.write('%d %3f %3f %3f\n' % (epoch, time_cost, loss.item(), prec1))
             output.flush()

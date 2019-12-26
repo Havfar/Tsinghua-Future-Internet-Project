@@ -27,92 +27,92 @@ parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
                     metavar='LR', help='initial learning rate')
 
 
-def run(rank, world_size):
-    output = open("VGG19_PS_output.txt", "w")
-    args = parser.parse_args()
+# def run(rank, world_size):
+#     output = open("VGG19_PS_output.txt", "w")
+#     args = parser.parse_args()
 
-    # model initiated with random weights
-    model = models.vgg19(pretrained=False)
+#     # model initiated with random weights
+#     model = models.vgg19(pretrained=False)
     
-    # model_flat = flatten_all(model)
-    model_flat = flatten(model)
-    print("rank:", rank, "len model flat:", len(model_flat))
-    dist.broadcast(model_flat, 0)
+#     # model_flat = flatten_all(model)
+#     model_flat = flatten(model)
+#     print("rank:", rank, "len model flat:", len(model_flat))
+#     dist.broadcast(model_flat, 0)
 
 
-    # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cpu()
+#     # define loss function (criterion) and optimizer
+#     criterion = nn.CrossEntropyLoss().cpu()
 
-    # NB! may want to remove
-    cudnn.benchmark = True
+#     # NB! may want to remove
+#     cudnn.benchmark = True
 
-    # Data loading code
-    train_transform = transforms.Compose(
-        [transforms.RandomCrop(32, padding=4),
-         transforms.RandomHorizontalFlip(),
-         transforms.ToTensor(),
-         transforms.Normalize((0.1307,), (0.3081,))])
-
-
-    # num workers kan forsøkes endres til = 0. Evt. les mer om dette.
-    # Drop last gjør at vi ikke får tull med at settet ikke kan deles på alle processene.
-    trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
-
-    # Tror denne fungerer slik at den passer på at hele datasettet blir fordelt på alle workers.
-    # I den forstand at hver worker velger tilfeldig data av datasettet ved hver epoch.
-    # Dette gjør at de ulike workerne får forskjellig data, men hele settet blir dekt ved hver epoch.
-    train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
-
-    # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
-    # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
-
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
-                                               num_workers=2, sampler=train_sampler)
-
-    # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
-    val_transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.1307,), (0.3081,))])
+#     # Data loading code
+#     train_transform = transforms.Compose(
+#         [transforms.RandomCrop(32, padding=4),
+#          transforms.RandomHorizontalFlip(),
+#          transforms.ToTensor(),
+#          transforms.Normalize((0.1307,), (0.3081,))])
 
 
-    valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
-    val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)
+#     # num workers kan forsøkes endres til = 0. Evt. les mer om dette.
+#     # Drop last gjør at vi ikke får tull med at settet ikke kan deles på alle processene.
+#     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
 
-    time_cost = 0
-    for epoch in range(args.epochs):
-        print("Rank: ", rank, "starting epoch:", epoch)
-        dist.barrier()
-        t1 = time.time()
-        # for i, (input, target) in enumerate(val_loader):
-        for i in range(len(train_loader)):
-            model_flat = flatten(model)
-            # Todo endre rank
-            print("rank ", rank, "waiting for reduce of model", "i in len(trainloader):", i)
-            dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
-            model_flat.div_(2)
+#     # Tror denne fungerer slik at den passer på at hele datasettet blir fordelt på alle workers.
+#     # I den forstand at hver worker velger tilfeldig data av datasettet ved hver epoch.
+#     # Dette gjør at de ulike workerne får forskjellig data, men hele settet blir dekt ved hver epoch.
+#     train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
 
-            dist.broadcast(model_flat, src=rank)
-            unflatten(model, model_flat)
+#     # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
+#     # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
 
-        print("Rank:", rank, "calling dist.barrier()")
-        dist.barrier()
-        t2 = time.time()
-        time_cost += t2 - t1
-        model_flat.zero_()
-        loss = torch.FloatTensor([0])
-        dist.reduce(loss, dst=rank, op=dist.ReduceOp.SUM)
-        loss.div_(world_size)
-        dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
-        model_flat.div_(world_size)
-        #unflatten_all(model, model_flat)
-        unflatten(model, model_flat)
+#     train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
+#                                                num_workers=2, sampler=train_sampler)
 
-        # evaluate on validation set
-        _, prec1 = validate(val_loader, model, criterion)
-        output.write('%d %3f %3f %3f\n' % (epoch, time_cost, loss.item(), prec1))
-        output.flush()
+#     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
+#     val_transform = transforms.Compose(
+#         [transforms.ToTensor(),
+#          transforms.Normalize((0.1307,), (0.3081,))])
 
-    output.close()
+
+#     valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
+#     val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)
+
+#     time_cost = 0
+#     for epoch in range(args.epochs):
+#         print("Rank: ", rank, "starting epoch:", epoch)
+#         dist.barrier()
+#         t1 = time.time()
+#         # for i, (input, target) in enumerate(val_loader):
+#         for i in range(len(train_loader)):
+#             model_flat = flatten(model)
+#             # Todo endre rank
+#             print("rank ", rank, "waiting for reduce of model", "i in len(trainloader):", i)
+#             dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
+#             model_flat.div_(2)
+
+#             dist.broadcast(model_flat, src=rank)
+#             unflatten(model, model_flat)
+
+#         print("Rank:", rank, "calling dist.barrier()")
+#         dist.barrier()
+#         t2 = time.time()
+#         time_cost += t2 - t1
+#         model_flat.zero_()
+#         loss = torch.FloatTensor([0])
+#         dist.reduce(loss, dst=rank, op=dist.ReduceOp.SUM)
+#         loss.div_(world_size)
+#         dist.reduce(model_flat, dst=rank, op=dist.ReduceOp.SUM)
+#         model_flat.div_(world_size)
+#         #unflatten_all(model, model_flat)
+#         unflatten(model, model_flat)
+
+#         # evaluate on validation set
+#         _, prec1 = validate(val_loader, model, criterion)
+#         output.write('%d %3f %3f %3f\n' % (epoch, time_cost, loss.item(), prec1))
+#         output.flush()
+
+#     output.close()
 
 
 def run(rank, world_size, pserver):
@@ -270,7 +270,7 @@ def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, ps
     for batch_idx, (input, target) in enumerate(train_loader):
         t1 = time.time()
 
-        print("rank:", rank, "training batch:", i)
+        print("rank:", rank, "training batch:", batch_idx)
         input_var, target_var = Variable(input), Variable(target)
 
         # compute output

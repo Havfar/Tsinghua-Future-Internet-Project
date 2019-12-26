@@ -181,8 +181,6 @@ def run(rank, world_size, pserver):
     # num workers kan forsøkes endres til = 0. Evt. les mer om dette.
     # Drop last gjør at vi ikke får tull med at settet ikke kan deles på alle processene.
     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
-    trainset = trainset[:5000]
-    print(len(trainset))
 
     # Tror denne fungerer slik at den passer på at hele datasettet blir fordelt på alle workers.
     # I den forstand at hver worker velger tilfeldig data av datasettet ved hver epoch.
@@ -192,7 +190,8 @@ def run(rank, world_size, pserver):
     # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
     # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
 
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
+    batch_size_set = [1.15, 1.15, 1.15, 1.15, 1.10, 1.15, 1.15]
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=(128 * batch_size_set[rank]) // 100, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.

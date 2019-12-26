@@ -264,7 +264,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
     # switch to train mode
     model.train()
-    print("rank:", rank, "trainloader:", train_loader)
+    # print("rank:", rank, "trainloader:", train_loader)
 
     # Run a batch
     for batch_idx, (input, target) in enumerate(train_loader):
@@ -316,7 +316,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         optimizer.step()
 
-        output.write('%d %3f %3f %3f %3f %3f %3f %3f\n' % ("Rank: " + rank, "epoch: " + epoch, "batch", batch_idx, "train time cost: " + train_time, "communication time: " + communication_time, "loss: " + (loss.item()), "prec: "+ prec1))
+        output.write('%d %3f %3f %3f %3f %3f %3f %3f\n' % ("Rank: " + str(rank), "epoch: " + str(epoch), "batch", str(batch_idx), "train time cost: " + str(train_time), "communication time: " + str(communication_time), "loss: " + str(loss.item()), "prec: "+ str(prec1)))
         output.flush()
 
 

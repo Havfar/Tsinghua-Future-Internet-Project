@@ -316,7 +316,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         optimizer.step()
 
-        output.write('Rank: %d epoch: %3f batch_idx: %3f train time cost: %3f com time: %3f loss %3f prec: %3f \n' % (rank, str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1)))
+        output.write('Rank: %s epoch: %s batch_idx: %s train time cost: %s com time: %s loss %s prec: %s \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1)))
         output.flush()
 
 

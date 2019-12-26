@@ -213,7 +213,7 @@ def run(rank, world_size, pserver):
         train_sampler.set_epoch(epoch)
 
 
-        loss = train(train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)
+        loss = train(output, train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)
 
 
         print("Rank:", rank, "calling dist.barrier()")
@@ -258,7 +258,7 @@ def run(rank, world_size, pserver):
         #output.write('Epoch: %d  Time: %3f  Train_loss: %3f  Val_acc: %3f\n'%(epoch,time_cost,loss,prec1))
 
 
-def train(train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver):  # , model_l, model_r):
+def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver):  # , model_l, model_r):
     losses = AverageMeter()
     top1 = AverageMeter()
 
@@ -336,7 +336,7 @@ def validate(val_loader, model, criterion):
 
         # compute output
         with torch.no_grad():
-            mode_output = model(input_var)
+            model_output = model(input_var)
             loss = criterion(model_output, target_var)
 
         # measure accuracy and record loss

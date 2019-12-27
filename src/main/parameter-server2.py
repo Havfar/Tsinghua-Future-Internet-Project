@@ -24,7 +24,7 @@ from torch.autograd import Variable
 parser = argparse.ArgumentParser(description='PyTorch Cifar10 Training')
 parser.add_argument('--epochs', default=1, type=int, metavar='N',
                     help='number of total epochs to run')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     metavar='LR', help='initial learning rate')
 
 
@@ -191,8 +191,10 @@ def run(rank, world_size, pserver):
     # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
     # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
 
-    # batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size= 128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
+    batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
+    batch_size_set2 = [19, 19, 19, 19, 14, 19, 19]
+    # old worldsize = 128 // world_size
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size= batch_size_set2[rank], pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.

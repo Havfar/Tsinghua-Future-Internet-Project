@@ -193,8 +193,8 @@ def run(rank, world_size, pserver):
 
     batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
     batch_size_set2 = [19, 19, 19, 19, 14, 19, 19]
-    # old worldsize = 128 // world_size
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size= batch_size_set2[rank], pin_memory=True, drop_last=True ,shuffle=False,
+    old_worldsize = 128 // world_size
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size= old_worldsize, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.

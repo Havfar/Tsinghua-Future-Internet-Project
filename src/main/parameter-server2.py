@@ -239,7 +239,7 @@ def run(rank, world_size, pserver):
         if rank == pserver:
             output.write('Validate epoch %s, \n' % (epoch))
             _, prec1 = validate(val_loader, model, criterion)
-            output.write('%s, %s, %s, %s\n' % (str(epoch), str(time_cost), str(loss.item()), str(prec1[0].item())))
+            output.write('epoch: %s, time: %s, loss: %s, accuracy: %s\n' % (str(epoch), str(time_cost), str(loss.item()), str(prec1[0].item())))
             output.flush()
 
     output.close()
@@ -303,17 +303,20 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         dist.barrier()
         t3 = time.time()
         print("rank:", rank, "finished training in:", train_time, "starting reduce")
-        dist.reduce(model_flat, dst=pserver, op=dist.ReduceOp.SUM)
-        
+        #dist.reduce(model_flat, dst=pserver, op=dist.ReduceOp.SUM)
+        dist.all_reduce(model_flat, op=dist.ReduceOp.SUM)
         # sync all processes here after reducing -- so that we can divide in the coordinator and broadcast model
         dist.barrier()
         
+        """
         if rank == pserver:
 
             # average model
             model_flat.div_(world_size)
-        
-        dist.broadcast(model_flat, src=pserver)
+        """
+        model_flat.div_(world_size)
+
+        # dist.broadcast(model_flat, src=pserver)
 
         # sync all to make sure all have recieved updated averaged model
         dist.barrier()
@@ -352,6 +355,8 @@ def validate(val_loader, model, criterion):
         prec1 = accuracy(model_output.data, target, topk=(1,))
         losses.update(loss.data.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
+    
+    model.train()
 
     return losses.avg, top1.avg
 

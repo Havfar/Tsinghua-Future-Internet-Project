@@ -239,7 +239,7 @@ def run(rank, world_size, pserver):
         if rank == pserver:
             output.write('Validate epoch %s, \n' % (epoch))
             _, prec1 = validate(val_loader, model, criterion)
-            output.write('%d %3f %3f %3f\n' % (epoch, time_cost, loss.item(), prec1))
+            output.write('%s, %s, %s, %s\n' % (str(epoch), str(time_cost), str(loss.item()), str(prec1[0].item())))
             output.flush()
 
     output.close()

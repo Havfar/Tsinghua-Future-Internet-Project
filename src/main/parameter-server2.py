@@ -129,7 +129,6 @@ def run(rank, world_size, pserver):
     model_flat = flatten(model)
     dist.broadcast(model_flat, src=pserver)
 
-    print("rank:", rank, "len model flat:", len(model_flat))
 
     unflatten(model, model_flat)
 
@@ -195,7 +194,7 @@ def run(rank, world_size, pserver):
     batch_size_set2 = [19, 19, 19, 19, 14, 19, 19]
     old_worldsize = 128 // world_size
     one_proc_each_b_set = [74, 18, 36]
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size= one_proc_each_b_set[rank], pin_memory=True, drop_last=True ,shuffle=False,
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size= old_worldsize, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
@@ -207,7 +206,6 @@ def run(rank, world_size, pserver):
     valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
     val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)
 
-    print("dataloader len:", train_loader.dataset)
 
     time_cost = 0
     for epoch in range(args.epochs):
@@ -271,12 +269,10 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
     # switch to train mode
     model.train()
     # print("rank:", rank, "trainloader:", train_loader)
-    counter = 0
+
     # Run a batch
     for batch_idx, (input, target) in enumerate(train_loader):
-
-        counter += 1
-        """ # REMOVE commented out because of testing enumerate debug
+        
         optimizer.zero_grad()
 
         t1 = time.time()
@@ -311,14 +307,13 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         dist.all_reduce(model_flat, op=dist.ReduceOp.SUM)
         # sync all processes here after reducing -- so that we can divide in the coordinator and broadcast model
         dist.barrier()
-        """ # REMOVE THIS
+        
         """
         if rank == pserver:
 
             # average model
             model_flat.div_(world_size)
         """
-        """ # REMOVE
         model_flat.div_(world_size)
 
         # dist.broadcast(model_flat, src=pserver)
@@ -335,9 +330,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1[0].item())))
         output.flush()
-        """ # REMOVE THIS
 
-    print("rank:", rank, "batches:", counter)
 
     return losses.avg
 

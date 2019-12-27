@@ -274,6 +274,9 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
     # Run a batch
     for batch_idx, (input, target) in enumerate(train_loader):
+
+        
+        """ # REMOVE commented out because of testing enumerate debug
         optimizer.zero_grad()
 
         t1 = time.time()
@@ -308,13 +311,14 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         dist.all_reduce(model_flat, op=dist.ReduceOp.SUM)
         # sync all processes here after reducing -- so that we can divide in the coordinator and broadcast model
         dist.barrier()
-        
+        """ # REMOVE THIS
         """
         if rank == pserver:
 
             # average model
             model_flat.div_(world_size)
         """
+        """ # REMOVE
         model_flat.div_(world_size)
 
         # dist.broadcast(model_flat, src=pserver)
@@ -331,6 +335,8 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1[0].item())))
         output.flush()
+        """ # REMOVE THIS
+        print("Rank:", rank, batch_idx)
 
 
     return losses.avg

@@ -271,11 +271,11 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
     # switch to train mode
     model.train()
     # print("rank:", rank, "trainloader:", train_loader)
-
+    counter = 0
     # Run a batch
     for batch_idx, (input, target) in enumerate(train_loader):
 
-        
+        counter += 1
         """ # REMOVE commented out because of testing enumerate debug
         optimizer.zero_grad()
 
@@ -336,8 +336,8 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1[0].item())))
         output.flush()
         """ # REMOVE THIS
-        print("Rank:", rank, batch_idx)
 
+    print("rank:", rank, "batches:", counter)
 
     return losses.avg
 

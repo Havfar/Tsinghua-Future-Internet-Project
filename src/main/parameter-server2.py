@@ -299,6 +299,8 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         # communicate
         model_flat = flatten(model)
 
+
+        dist.barrier()
         t3 = time.time()
         print("rank:", rank, "finished training in:", train_time, "starting reduce")
         dist.reduce(model_flat, dst=pserver, op=dist.ReduceOp.SUM)
@@ -323,7 +325,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         optimizer.step()
 
-        output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1)))
+        output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1.item())))
         output.flush()
 
 

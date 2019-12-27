@@ -117,7 +117,7 @@ parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
 
 
 def run(rank, world_size, pserver):
-    output = open("VGG19_PS_output.txt", "w")
+    output = open("VGG19_PS_output_" + rank + ".txt", "w")
     args = parser.parse_args()
     current_lr = args.lr
 
@@ -215,7 +215,7 @@ def run(rank, world_size, pserver):
         train_sampler.set_epoch(epoch)
 
 
-        loss = train(output = output, train_loader = train_loader, model = model, criterion, optimizer, epoch, rank, world_size, pserver)
+        loss = train(output, train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)
 
 
         print("Rank:", rank, "calling dist.barrier()")

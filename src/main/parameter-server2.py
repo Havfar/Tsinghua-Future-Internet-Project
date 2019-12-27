@@ -207,6 +207,7 @@ def run(rank, world_size, pserver):
     valset = datasets.CIFAR10(root='./data', train=False, download=False, transform=val_transform)
     val_loader = torch.utils.data.DataLoader(valset, batch_size=100, pin_memory=True, shuffle=False, num_workers=2)
 
+    print("dataloader len:", train_loader.__len__)
 
     time_cost = 0
     for epoch in range(args.epochs):

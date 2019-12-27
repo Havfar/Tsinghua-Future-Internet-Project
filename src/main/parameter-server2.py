@@ -191,8 +191,8 @@ def run(rank, world_size, pserver):
     # Her bruker vi shuffle = false, som gjør at vi kan bruke en sampler, nemlig sampleren vi laget i linja over.
     # Vet ikke om det er mer overhead å bruke sampler. Sampler velger visstnok et subset av training data for å trene på.
 
-    batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=floor(128 * batch_size_set[rank]), pin_memory=True, drop_last=True ,shuffle=False,
+    # batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size= 128 // world_size, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
@@ -215,7 +215,7 @@ def run(rank, world_size, pserver):
         train_sampler.set_epoch(epoch)
 
 
-        loss = train(output, train_loader, model, criterion, optimizer, epoch, rank, world_size, pserver)
+        loss = train(output = output, train_loader = train_loader, model = model, criterion, optimizer, epoch, rank, world_size, pserver)
 
 
         print("Rank:", rank, "calling dist.barrier()")
@@ -270,6 +270,8 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
     # Run a batch
     for batch_idx, (input, target) in enumerate(train_loader):
+        optimizer.zero_grad()
+
         t1 = time.time()
 
         print("rank:", rank, "training batch:", batch_idx)
@@ -280,7 +282,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
         loss = criterion(model_output, target_var)
 
         # compute gradient and do SGD step
-        optimizer.zero_grad()
+        # optimizer.zero_grad() - moved to top of code
         loss.backward()
 
         # measure accuracy and record loss

@@ -117,7 +117,7 @@ parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
 
 
 def run(rank, world_size, pserver):
-    output = open("VGG19_PS_output_" + rank + ".txt", "w")
+    output = open("VGG19_PS_output_" + str(rank) + ".txt", "w")
     args = parser.parse_args()
     current_lr = args.lr
 

@@ -194,7 +194,8 @@ def run(rank, world_size, pserver):
     batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
     batch_size_set2 = [19, 19, 19, 19, 14, 19, 19]
     old_worldsize = 128 // world_size
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size= old_worldsize, pin_memory=True, drop_last=True ,shuffle=False,
+    one_proc_each_b_set = [74, 18, 36]
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size= one_proc_each_b_set[rank], pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
     # Her gjør vi noe transformering på verdiene. Ikke helt sikker på hvorfor vi normaliserer slik som vi gjør.
@@ -236,7 +237,7 @@ def run(rank, world_size, pserver):
         # evaluate on validation set
 
         if rank == pserver:
-            output.write('Validate epoch %s \n' % (epoch))
+            output.write('Validate epoch %s, \n' % (epoch))
             _, prec1 = validate(val_loader, model, criterion)
             output.write('%d %3f %3f %3f\n' % (epoch, time_cost, loss.item(), prec1))
             output.flush()
@@ -322,7 +323,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         optimizer.step()
 
-        output.write('Rank: %s epoch: %s batch_idx: %s train time cost: %s com time: %s loss %s prec: %s \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1)))
+        output.write('Rank: %s, epoch: %s, batch_idx: %s, train-time: %s, com-time: %s, loss %s, prec: %s, \n' % ( str(rank), str(epoch), str(batch_idx), str(train_time), str(communication_time),  str(loss.item()), str(prec1)))
         output.flush()
 
 

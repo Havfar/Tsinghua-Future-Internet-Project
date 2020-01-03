@@ -11,6 +11,6 @@ In this project the team attempts to come up with an optimal solution to the pro
 ## How to run
 
 ```bash 
-mpirun --hostfile hosts -np 7 /home/a2019403475/.conda/havtob/bin/python3 Tsinghua-Future-Internet-Project/src/main/noe --epochs 100 --lr 0.001
+mpirun --hostfile hosts -np 5 /home/a2019403475/.conda/envs/havtob/bin/python3 Tsinghua-Future-Internet-Project/src/main/p2p_adam.py --epochs 100 --lr 0.001
 ```
 

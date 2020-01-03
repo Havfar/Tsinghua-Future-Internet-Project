@@ -32,7 +32,7 @@ parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
 
 
 def run(rank, world_size, pserver):
-    output = open("VGG19_PS_output_" + str(rank) + ".txt", "w")
+    output = open("VGG19_PS_output_256bsz_" + str(rank) + ".txt", "w")
     args = parser.parse_args()
     current_lr = args.lr
 
@@ -88,7 +88,7 @@ def run(rank, world_size, pserver):
                                          shuffle=True)"""
 
 
-    old_worldsize = 128 // world_size
+    old_worldsize = 256 // world_size
     train_loader = torch.utils.data.DataLoader(trainset, batch_size= old_worldsize, pin_memory=True, drop_last=True ,shuffle=False,
                                                num_workers=2, sampler=train_sampler)
 
@@ -145,7 +145,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         t1 = time.time()
 
-        print("rank:", rank, "training batch:", batch_idx)
+        # print("rank:", rank, "training batch:", batch_idx)
         input_var, target_var = Variable(input), Variable(target)
 
         # compute output
@@ -170,7 +170,7 @@ def train(output, train_loader, model, criterion, optimizer, epoch, rank, world_
 
         dist.barrier()
         t3 = time.time()
-        print("rank:", rank, "finished training in:", train_time, "starting reduce")
+        # print("rank:", rank, "finished training in:", train_time, "starting reduce")
         dist.all_reduce(model_flat, op=dist.ReduceOp.SUM)
         # sync all processes here after reducing -- so that we can divide in the coordinator and broadcast model
         dist.barrier()

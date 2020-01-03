@@ -1,5 +1,3 @@
-import os
-import shutil
 import time
 import argparse
 
@@ -10,8 +8,6 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-from math import ceil
-from math import floor
 
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets

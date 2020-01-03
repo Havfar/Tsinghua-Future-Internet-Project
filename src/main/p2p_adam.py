@@ -1,5 +1,3 @@
-# Cleaned up, and uses proper datapartitioner from pytorch documentation
-
 import os
 import shutil
 import time
@@ -12,7 +10,6 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-from data_partition_helpers import DataPartitioner
 from math import ceil
 from math import floor
 
@@ -72,20 +69,6 @@ def run(rank, world_size, pserver):
     trainset = datasets.CIFAR10(root='./data', train=True, download=False, transform=train_transform)
     train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=world_size, rank=rank)
 
-  
-    # batch_size_set = [0.15, 0.15, 0.15, 0.15, 0.10, 0.15, 0.15]
-    # batch_size_set2 = [19, 19, 19, 19, 14, 19, 19]
-
-
-    # Try with or without this
-    """
-    bsz = 128 / float(world_size)
-    partition_sizes = [1.0 / world_size for _ in range(world_size)]
-    partition = DataPartitioner(trainset, partition_sizes)
-    partition = partition.use(dist.get_rank())
-    train_set = torch.utils.data.DataLoader(partition,
-                                         batch_size=bsz,
-                                         shuffle=True)"""
 
 
     old_worldsize = 256 // world_size
